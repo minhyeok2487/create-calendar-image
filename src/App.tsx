@@ -117,9 +117,21 @@ const App: React.FC = () => {
 
   const handleSaveAsImage = async () => {
     if (!captureRef.current) return;
+
+    // 리사이즈 핸들 숨기기
+    const handle = captureRef.current.querySelector(
+      ".resize-handle"
+    ) as HTMLElement;
+    if (handle) handle.style.display = "none";
+
+    // 캡처
     const canvas = await html2canvas(captureRef.current);
     const image = canvas.toDataURL("image/png");
 
+    // 다시 핸들 보이기
+    if (handle) handle.style.display = "block";
+
+    // 다운로드
     const link = document.createElement("a");
     link.href = image;
     link.download = `${year}-${month}_calendar.png`;
@@ -249,6 +261,7 @@ const App: React.FC = () => {
 
                 {/* 크기 조절 핸들 */}
                 <div
+                  className="resize-handle" // 👈 이걸 추가
                   onMouseDown={handleResizeStart}
                   style={{
                     position: "absolute",
