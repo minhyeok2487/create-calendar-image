@@ -12,8 +12,10 @@ const App: React.FC = () => {
   const [dragging, setDragging] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
 
   const captureRef = useRef<HTMLDivElement>(null);
+  const calendarWrapperRef = useRef<HTMLDivElement>(null);
 
   const handlePaste = useCallback((event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -80,8 +82,8 @@ const App: React.FC = () => {
     }
     setCalendarData(generateCalendar(year, month));
     setPosition({
-      x: window.innerWidth / 2 - 180,
-      y: window.innerHeight / 2 - 150,
+      x: 100,
+      y: 100,
     });
   };
 
@@ -115,33 +117,6 @@ const App: React.FC = () => {
     };
   }, [handleMouseMove]);
 
-  const handleSaveAsImage = async () => {
-    if (!captureRef.current) return;
-
-    // 리사이즈 핸들 숨기기
-    const handle = captureRef.current.querySelector(
-      ".resize-handle"
-    ) as HTMLElement;
-    if (handle) handle.style.display = "none";
-
-    // 캡처
-    const canvas = await html2canvas(captureRef.current);
-    const image = canvas.toDataURL("image/png");
-
-    // 다시 핸들 보이기
-    if (handle) handle.style.display = "block";
-
-    // 다운로드
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = `${year}-${month}_calendar.png`;
-    link.click();
-  };
-
-  const [scale, setScale] = useState(1); // 크기 비율 상태
-  const calendarWrapperRef = useRef<HTMLDivElement>(null);
-
-  // 크기 조절 드래그 시작
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -149,7 +124,7 @@ const App: React.FC = () => {
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const diff = moveEvent.clientX - startX;
-      const newScale = Math.max(0.5, Math.min(2, startScale + diff / 300)); // 최소 0.5 ~ 최대 2배
+      const newScale = Math.max(0.5, Math.min(2, startScale + diff / 300));
       setScale(newScale);
     };
 
@@ -162,9 +137,31 @@ const App: React.FC = () => {
     window.addEventListener("mouseup", handleMouseUp);
   };
 
+  const handleSaveAsImage = async () => {
+    if (!captureRef.current) return;
+
+    const handle = captureRef.current.querySelector(
+      ".resize-handle"
+    ) as HTMLElement;
+    if (handle) handle.style.display = "none";
+
+    const canvas = await html2canvas(captureRef.current, {
+      backgroundColor: null,
+      scale: 2,
+      useCORS: true,
+    });
+
+    if (handle) handle.style.display = "block";
+
+    const image = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = image;
+    link.download = `${year}-${month}_calendar.png`;
+    link.click();
+  };
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      {/* 상단 컨트롤 */}
       <div
         style={{
           padding: "1rem",
@@ -195,8 +192,6 @@ const App: React.FC = () => {
           </select>
         </label>
         <button onClick={handleAddCalendar}>달력 추가하기</button>
-
-        {/* 배경 투명도 */}
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           달력 배경:
           <input
@@ -209,15 +204,12 @@ const App: React.FC = () => {
           />
           <span>{calendarBgOpacity}</span>
         </label>
-
         <button onClick={handleSaveAsImage}>이미지로 저장</button>
       </div>
 
-      {/* 이미지 + 달력 렌더링 */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        ref={captureRef}
         style={{
           width: "100%",
           height: "calc(100vh - 70px)",
@@ -229,13 +221,22 @@ const App: React.FC = () => {
         }}
       >
         {imageUrl ? (
-          <>
+          <div
+            ref={captureRef}
+            style={{
+              position: "relative",
+              display: "inline-block",
+            }}
+          >
             <img
               src={imageUrl}
               alt="Uploaded"
               style={{
-                maxWidth: "80%",
-                maxHeight: "80%",
+                display: "block",
+                maxWidth: "800px",
+                maxHeight: "1000px",
+                width: "100%",
+                height: "auto",
                 objectFit: "contain",
               }}
             />
@@ -247,9 +248,9 @@ const App: React.FC = () => {
                   position: "absolute",
                   top: position.y,
                   left: position.x,
-                  cursor: "move",
                   transform: `scale(${scale})`,
                   transformOrigin: "top left",
+                  cursor: "move",
                 }}
               >
                 <StyledCalendar
@@ -258,10 +259,8 @@ const App: React.FC = () => {
                   calendarData={calendarData}
                   opacity={calendarBgOpacity}
                 />
-
-                {/* 크기 조절 핸들 */}
                 <div
-                  className="resize-handle" // 👈 이걸 추가
+                  className="resize-handle"
                   onMouseDown={handleResizeStart}
                   style={{
                     position: "absolute",
@@ -277,7 +276,7 @@ const App: React.FC = () => {
                 />
               </div>
             )}
-          </>
+          </div>
         ) : (
           <div
             style={{
