@@ -93,13 +93,16 @@ const App: React.FC = () => {
     });
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!dragging) return;
-    setPosition({
-      x: e.clientX - offset.x,
-      y: e.clientY - offset.y,
-    });
-  };
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!dragging) return;
+      setPosition({
+        x: e.clientX - offset.x,
+        y: e.clientY - offset.y,
+      });
+    },
+    [dragging, offset]
+  );
 
   const handleMouseUp = () => setDragging(false);
 
@@ -110,7 +113,7 @@ const App: React.FC = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragging, offset]);
+  }, [handleMouseMove]);
 
   const handleSaveAsImage = async () => {
     if (!captureRef.current) return;
